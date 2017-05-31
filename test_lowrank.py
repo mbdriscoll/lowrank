@@ -1,3 +1,4 @@
+import time
 import pytest
 import numpy as np
 from itertools import product
@@ -21,3 +22,29 @@ def test_svthresh(T, X, Y, Z, b, lamda):
     imgs = rand64c(Z,Y,X,T)
     sx, sy, sz = np.random.randint(0, b, 3)
     lowrank.svthresh(imgs, lamda, b, sx, sy, sz)
+
+def benchmark_svthresh():
+    b = 8
+    lamda = 0.5
+    T, X, Y, Z = 20, 208, 308, 480
+    ntrials = 5
+
+    imgs = rand64c(Z,Y,X,T)
+    sx, sy, sz = np.random.randint(0, b, 3)
+
+    times = []
+    for trial in range(ntrials):
+        start = time.time()
+        lowrank.svthresh(imgs, lamda, b, sx, sy, sz)
+        times.append( time.time() - start )
+    
+    sec = np.median(times)
+    nblocks = np.prod(imgs.shape) / b**3  # approximate
+    nflops = nblocks * 5 * (T*T*b**3)
+    gflops_sec = nflops / sec * 1e-9
+
+    print("Median of %d trials: %2.2f seconds, %4.2f GFlops/sec" % (ntrials, sec, gflops_sec))
+
+
+if __name__ == '__main__':
+    benchmark_svthresh()

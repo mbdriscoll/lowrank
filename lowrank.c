@@ -1,10 +1,7 @@
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-
-#include <Python.h>
-#include <numpy/arrayobject.h>
-
 #include <stdlib.h>
-#include <complex.h>
+#include <string.h>
+
+#include "lowrank.h"
 
 #define MKL_Complex8  complex float
 #define MKL_Complex16 complex double
@@ -30,21 +27,11 @@
    (z) * (    1))
 
 
-static PyObject*
-svthresh(PyObject *self, PyObject *args)
+void svthresh(float thresh, int b, // threshold and block size
+    int sx, int sy, int sz,        // shift values
+    int T, int X, int Y, int Z,    // dimensions of imgs
+    complex float *imgs)           // data to threshold
 {
-    float thresh;
-    PyArrayObject *py_imgs;
-    int b, sx, sy, sz; // block size, shift x, y, z.
-    if (!PyArg_ParseTuple(args, "Ofiiii", &py_imgs, &thresh, &b, &sx, &sy, &sz))
-        return NULL;
-
-    complex float *imgs = PyArray_DATA(py_imgs);
-    int Z = PyArray_DIM(py_imgs, 0),
-        Y = PyArray_DIM(py_imgs, 1),
-        X = PyArray_DIM(py_imgs, 2),
-        T = PyArray_DIM(py_imgs, 3);
-
     int M = b*b*b,
         N = T;
     int K = min(M,N);
@@ -103,21 +90,4 @@ svthresh(PyObject *self, PyObject *args)
 
         free(block); free(U); free(V); free(s); free(superb);
     }
-
-    Py_RETURN_NONE;
-}
-static PyMethodDef lowrankMethods[] = {
-    { "svthresh", svthresh, METH_VARARGS, NULL },
-    {NULL, NULL, 0, NULL}        /* Sentinel */
-};
-
-static struct PyModuleDef lowrankmodule = {
-    PyModuleDef_HEAD_INIT, "lowrank", NULL, -1, lowrankMethods,
-};
-
-PyMODINIT_FUNC
-PyInit_lowrank(void)
-{
-    import_array();
-    return PyModule_Create(&lowrankmodule);
 }
