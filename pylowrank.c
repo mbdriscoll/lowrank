@@ -14,13 +14,20 @@ svthresh_py(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "Ofiiii", &py_imgs, &thresh, &b, &sx, &sy, &sz))
         return NULL;
 
-    complex float *imgs = PyArray_DATA(py_imgs);
-    int Z = PyArray_DIM(py_imgs, 0),
-        Y = PyArray_DIM(py_imgs, 1),
-        X = PyArray_DIM(py_imgs, 2),
-        T = PyArray_DIM(py_imgs, 3);
+    int T0=1, P=1, T1=1, X=1, Y=1, Z=1;
+    switch (PyArray_NDIM(py_imgs)) {
+        default:
+        case 6: T0 = PyArray_DIM(py_imgs, 5);
+        case 5: P  = PyArray_DIM(py_imgs, 4);
+        case 4: T1 = PyArray_DIM(py_imgs, 3);
+        case 3: X  = PyArray_DIM(py_imgs, 2);
+        case 2: Y  = PyArray_DIM(py_imgs, 1);
+        case 1: Z  = PyArray_DIM(py_imgs, 0);
+    }
 
-    svthresh( thresh, b, sx, sy, sz, T, X, Y, Z, imgs );
+    complex float *imgs = PyArray_DATA(py_imgs);
+
+    svthresh( thresh, b, sx, sy, sz, T0, P, T1, X, Y, Z, imgs );
 
     Py_RETURN_NONE;
 }

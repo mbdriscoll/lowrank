@@ -8,7 +8,7 @@ MKLROOT = os.environ.get('MKLROOT', '/opt/intel/mkl')
 for libext in ['lib', 'lib/intel64']:
     core = os.path.join(MKLROOT, libext, 'libmkl_core.a')
     seq  = os.path.join(MKLROOT, libext, 'libmkl_sequential.a')
-    ilp  = os.path.join(MKLROOT, libext, 'libmkl_intel_ilp64.a')
+    lp  = os.path.join(MKLROOT, libext, 'libmkl_intel_lp64.a')
     if os.path.exists( core ):
         print("Using MKL lib at %s" % core)
         break
@@ -25,7 +25,7 @@ lowrank = Extension('lowrank',
     ],
     extra_compile_args = ['-std=c11', '-fopenmp', '-m64', '-O3', '-DMKL_ILP64'],
     extra_link_args=['-fopenmp', '-mavx',
-        ilp, seq, core,
+        lp, seq, core,
         '-lgomp', '-lpthread', '-lm', '-ldl',
     ]
 )
