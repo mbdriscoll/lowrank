@@ -15,20 +15,9 @@
 #define min(x,y) (((x)<(y))?(x):(y))
 #define max(x,y) (((x)>(y))?(x):(y))
 
-// macro for indexing into a block
-#define IDX_BLK(t,bx,by,bz) \
-   (( t) * (b*b*b) + \
-    (bx) * (  b*b) + \
-    (by) * (    b) + \
-    (bz) * (    1))
-
-// macro for indexing into an img
-#define IDX_IMG(t,x,y,z) \
-  ((t) * (X*Y*Z) + \
-   (x) * (  Y*Z) + \
-   (y) * (    Z) + \
-   (z) * (    1))
-
+// indexing macros
+#define IDX_BLK(t0,p,t1,x,y,z) ((t0)*P*T1*b*b*b + (p)*T1*b*b*b + (t1)*b*b*b + (x)*b*b + (y)*b + (z))
+#define IDX_IMG(t0,t1,x,y,z) ((t0)*T1*X*Y*Z + (t1)*X*Y*Z + (x)*Y*Z + (y)*Z + (z))
 
 static PyObject*
 svthresh(PyObject *self, PyObject *args)
@@ -40,13 +29,20 @@ svthresh(PyObject *self, PyObject *args)
         return NULL;
 
     complex float *imgs = PyArray_DATA(py_imgs);
-    int Z = PyArray_DIM(py_imgs, 0),
-        Y = PyArray_DIM(py_imgs, 1),
-        X = PyArray_DIM(py_imgs, 2),
-        T = PyArray_DIM(py_imgs, 3);
+    int Z  = PyArray_DIM(py_imgs, 0),
+        Y  = PyArray_DIM(py_imgs, 1),
+        X  = PyArray_DIM(py_imgs, 2),
+        T1 = PyArray_DIM(py_imgs, 3),
+        P  = 1,
+        T0 = 1;
+
+    if (PyArray_NDIM(py_imgs) == 6) {
+        P  = PyArray_DIM(py_imgs, 4);
+        T0 = PyArray_DIM(py_imgs, 5);
+    }
 
     int M = b*b*b,
-        N = T;
+        N = T0*T1;
     int K = min(M,N);
     int ldc = M,
         ldu = M,
@@ -71,12 +67,14 @@ svthresh(PyObject *self, PyObject *args)
             memset(block, 0, M * N * sizeof(complex float));
 
             // load block
-            for (int t  = 0; t  < T;  t++) {
+            for (int t0 = 0; t0 < T0; t0++) {
+            for (int p  = 0; p  <  P;  p++) {
+            for (int t1 = 0; t1 < T1; t1++) {
             for (int bx = 0; bx < b; bx++) { if (0 <= x+bx && x+bx < X) {
             for (int by = 0; by < b; by++) { if (0 <= y+by && y+by < Y) {
             for (int bz = 0; bz < b; bz++) { if (0 <= z+bz && z+bz < Z) {
-                  block[ IDX_BLK(t,bx,by,bz) ] = imgs[ IDX_IMG(t,x+bx,y+by,z+bz) ];
-            }}}}}}}
+                  block[ IDX_BLK(t0,p,t1,bx,by,bz) ] = imgs[ IDX_IMG(t0,t1,x+bx,y+by,z+bz) ];
+            }}}}}}}}}
 
             // U, s, V = svd(block)
             LAPACKE_cgesvd( LAPACK_COL_MAJOR, 'S', 'S',
@@ -92,12 +90,14 @@ svthresh(PyObject *self, PyObject *args)
                  M, N, K, &alpha, U, ldu, V, ldv, &beta, block, ldc );
 
             // restore block
-            for (int t  = 0; t  < T;  t++) {
+            for (int t0 = 0; t0 < T0; t0++) {
+            for (int p  = 0; p  <  P;  p++) {
+            for (int t1 = 0; t1 < T1; t1++) {
             for (int bx = 0; bx < b; bx++) { if (0 <= x+bx && x+bx < X) {
             for (int by = 0; by < b; by++) { if (0 <= y+by && y+by < Y) {
             for (int bz = 0; bz < b; bz++) { if (0 <= z+bz && z+bz < Z) {
-                  imgs[ IDX_IMG(t,x+bx,y+by,z+bz) ] = block[ IDX_BLK(t,bx,by,bz) ];
-            }}}}}}}
+                  block[ IDX_BLK(t0,p,t1,bx,by,bz) ] = imgs[ IDX_IMG(t0,t1,x+bx,y+by,z+bz) ];
+            }}}}}}}}}
 
         }}}
 
@@ -106,6 +106,7 @@ svthresh(PyObject *self, PyObject *args)
 
     Py_RETURN_NONE;
 }
+
 static PyMethodDef lowrankMethods[] = {
     { "svthresh", svthresh, METH_VARARGS, NULL },
     {NULL, NULL, 0, NULL}        /* Sentinel */
