@@ -26,7 +26,7 @@ lowrank = Extension('lowrank',
     extra_compile_args = ['-std=c11', '-fopenmp', '-m64', '-O3', '-DMKL_ILP64'],
     extra_link_args=['-fopenmp', '-mavx',
         lp, seq, core,
-        '-lgomp', '-lpthread', '-lm', '-ldl',
+        '-lpthread', '-lm', '-ldl',
     ]
 )
 
