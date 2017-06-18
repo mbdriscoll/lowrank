@@ -13,21 +13,22 @@
 #define max(x,y) (((x)>(y))?(x):(y))
 
 // indexing macros
-#define IDX_BLK(t0,t1,x,y,z) ((t0)*T1*b*b*b + (t1)*b*b*b + (x)*b*b + (y)*b + (z))
-#define IDX_IMG(t0,p,t1,x,y,z) ((t0)*C*T1*b*b*b + (p)*T1*b*b*b + (t1)*b*b*b + (x)*b*b + (y)*b + (z))
+#define IDX_BLK(t,x,y,z) ((t)*b*b*b + (x)*b*b + (y)*b + (z))
+#define IDX_IMG(t,x,y,z) ((t)*X*Y*Z + (x)*Y*Z + (y)*Z + (z))
 
 void svthresh(float thresh, int b, // threshold and block size
     int sx, int sy, int sz,        // shift values
-    int T0, int C, int T1,         // time/blockid/time dimensions
-     int X, int Y, int Z,          // dimensions of imgs
+    int T, int X, int Y, int Z,    // dimensions of imgs
     complex float *imgs)           // data to threshold
 {
     int M = b*b*b,
-        N = T0*T1;
+        N = T;
     int K = min(M,N);
     int ldc = M,
         ldu = M,
         ldv = K;
+
+        printf("%d, %d, %d, %d, %d\n", b, T, X, Y, Z);
 
     #pragma omp parallel
     {
@@ -38,9 +39,9 @@ void svthresh(float thresh, int b, // threshold and block size
         float    *superb     = malloc(     K * sizeof(        float) );
         complex float *block = malloc( M * N * sizeof(complex float) );
 
+
         // for every block...
-        #pragma omp for collapse(4)
-        for (int c  = 0;  c < C;    c++) {
+        #pragma omp for collapse(3)
         for (int x = -sx; x < X; x += b) {
         for (int y = -sy; y < Y; y += b) {
         for (int z = -sz; z < Z; z += b) {
@@ -49,13 +50,12 @@ void svthresh(float thresh, int b, // threshold and block size
             memset(block, 0, M * N * sizeof(complex float));
 
             // load block
-            for (int t0 = 0; t0 < T0; t0++) {
-            for (int t1 = 0; t1 < T1; t1++) {
+            for (int t  = 0; t  < T;  t++) {
             for (int bx = 0; bx < b; bx++) { if (0 <= x+bx && x+bx < X) {
             for (int by = 0; by < b; by++) { if (0 <= y+by && y+by < Y) {
             for (int bz = 0; bz < b; bz++) { if (0 <= z+bz && z+bz < Z) {
-                  imgs[ IDX_IMG(t0,c,t1,x+bx,y+by,z+bz) ] = block[ IDX_BLK(t0,t1,bx,by,bz) ];
-            }}}}}}}}
+                  block[ IDX_BLK(t,bx,by,bz) ] = imgs[ IDX_IMG(t,x+bx,y+by,z+bz) ];
+            }}}}}}}
 
             // U, s, V = svd(block)
             LAPACKE_cgesvd( LAPACK_COL_MAJOR, 'S', 'S',
@@ -71,15 +71,14 @@ void svthresh(float thresh, int b, // threshold and block size
                  M, N, K, &alpha, U, ldu, V, ldv, &beta, block, ldc );
 
             // restore block
-            for (int t0 = 0; t0 < T0; t0++) {
-            for (int t1 = 0; t1 < T1; t1++) {
+            for (int t  = 0; t  < T;  t++) {
             for (int bx = 0; bx < b; bx++) { if (0 <= x+bx && x+bx < X) {
             for (int by = 0; by < b; by++) { if (0 <= y+by && y+by < Y) {
             for (int bz = 0; bz < b; bz++) { if (0 <= z+bz && z+bz < Z) {
-                  block[ IDX_BLK(t0,t1,bx,by,bz) ] = imgs[ IDX_IMG(t0,c,t1,x+bx,y+by,z+bz) ];
-            }}}}}}}}
+                  imgs[ IDX_IMG(t,x+bx,y+by,z+bz) ] = block[ IDX_BLK(t,bx,by,bz) ];
+            }}}}}}}
 
-        }}}}
+        }}}
 
         free(block); free(U); free(V); free(s); free(superb);
     }

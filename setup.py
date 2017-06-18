@@ -37,6 +37,6 @@ setup(name='lowrank',
       author='Michael Driscoll',
       author_email='driscoll@cs.berkeley.edu',
       url='https://github.com/mbdriscoll/lowrank',
-      packages=['lowrank'],
+      packages=['cuda'],
       ext_modules = [lowrank],
      )

@@ -7,7 +7,7 @@ import lowrank
 
 def rand64c(*shape):
     arr = np.random.rand(*shape) + 1j*np.random.rand(*shape)
-    arr = np.require(arr, dtype=np.complex64, requirements='F')
+    arr = np.require(arr, dtype=np.complex64, requirements='C')
     return arr
 
 @pytest.mark.parametrize("T0,P,T1,X,Y,Z,b,lamda",
@@ -45,8 +45,10 @@ def benchmark_svthresh():
     T, X, Y, Z = 2, 28, 38, 48
     ntrials = 5
 
-    imgs = rand64c(Z,Y,X,T)
+    imgs = rand64c(T,X,Y,Z)
     sx, sy, sz = np.random.randint(0, b, 3)
+    nblocks = np.prod(imgs.shape) / b**3  # approximate
+    nflops = nblocks * 2 * 5 * (b*b*b*T*min(b*b*b,T))
 
     times = []
     for trial in range(ntrials):
@@ -55,11 +57,24 @@ def benchmark_svthresh():
         times.append( time.time() - start )
     
     sec = np.median(times)
-    nblocks = np.prod(imgs.shape) / b**3  # approximate
-    nflops = nblocks * 5 * (T*T*b**3)
     gflops_sec = nflops / sec * 1e-9
+    print("CPU: median of %d trials: %2.2f seconds, %4.2f GFlops/sec" % (ntrials, sec, gflops_sec))
 
-    print("Median of %d trials: %2.2f seconds, %4.2f GFlops/sec" % (ntrials, sec, gflops_sec))
+
+    from cuda import svthresh
+    from numba import cuda
+
+    d_imgs = cuda.to_device(imgs)
+
+    times = []
+    for trial in range(ntrials):
+        start = time.time()
+        svthresh(d_imgs, lamda, b, sx, sy, sz)
+        times.append( time.time() - start )
+    
+    sec = np.median(times)
+    gflops_sec = nflops / sec * 1e-9
+    print("GPU: median of %d trials: %2.2f seconds, %4.2f GFlops/sec" % (ntrials, sec, gflops_sec))
 
 
 if __name__ == '__main__':
