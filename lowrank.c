@@ -28,8 +28,6 @@ void svthresh(float thresh, int b, // threshold and block size
         ldu = M,
         ldv = K;
 
-        printf("%d, %d, %d, %d, %d\n", b, T, X, Y, Z);
-
     #pragma omp parallel
     {
         const complex float alpha = 1.0, beta = 0.0;
