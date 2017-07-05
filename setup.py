@@ -4,19 +4,6 @@ from distutils.core import setup, Extension
 
 MKLROOT = os.environ.get('MKLROOT', '/opt/intel/mkl')
 
-# Find MKL library despite slight differences between MacOS and Linux installation paths.
-for libext in ['lib', 'lib/intel64']:
-    core = os.path.join(MKLROOT, libext, 'libmkl_core.a')
-    seq  = os.path.join(MKLROOT, libext, 'libmkl_sequential.a')
-    ilp  = os.path.join(MKLROOT, libext, 'libmkl_intel_ilp64.a')
-    if os.path.exists( core ):
-        print("Using MKL lib at %s" % core)
-        break
-else:
-    print("Could not locate MKL lib dir.")
-    sys.exit(1)
-
-
 lowrank = Extension('lowrank',
     sources=['pylowrank.c', 'lowrank.c'],
     include_dirs=[
@@ -25,9 +12,8 @@ lowrank = Extension('lowrank',
     ],
     extra_compile_args = ['-std=c11', '-fopenmp', '-m64', '-O3', '-DMKL_ILP64'],
     extra_link_args=['-fopenmp', '-mavx',
-        ilp, seq, core,
-        '-lgomp', '-lpthread', '-lm', '-ldl',
-    ]
+        '-L' + os.path.join(MKLROOT, 'lib', 'intel64'), '-lmkl_rt',
+        '-lpthread', '-lm', '-ldl']
 )
 
 
@@ -37,6 +23,5 @@ setup(name='lowrank',
       author='Michael Driscoll',
       author_email='driscoll@cs.berkeley.edu',
       url='https://github.com/mbdriscoll/lowrank',
-      packages=['lowrank'],
       ext_modules = [lowrank],
      )

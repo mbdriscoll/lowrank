@@ -52,6 +52,7 @@ void svthresh(
         float    *superb     = malloc(     K * sizeof(        float) );
         complex float *block = malloc( M * N * sizeof(complex float) );
 
+
         // for every block...
         #pragma omp for collapse(4)
         for (int w =   0; w < W; w++) {
