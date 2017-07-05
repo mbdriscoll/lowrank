@@ -1,9 +1,7 @@
 #include <complex.h>
 
 void svthresh(
-    float thresh,                // threshold
-    int block_size,              // block size
-    int sx, int sy, int sz,      // shift values
-    int T, int X, int Y, int Z,  // dimensions of imgs
-    complex float *imgs          // data to threshold
+    float thresh, complex float *imgs,
+    int T0, int W, int T1, int X, int Y, int Z, // image dimensions
+    int b, int sx, int sy, int sz // block size, shifts
 );
