@@ -23,7 +23,7 @@
     (bz) * (         1))
 
 // macros for indexing into an img
-#define IDX_IMG(t0,k,t1,x,y,z) \
+#define IDX_IMG(t0,w,t1,x,y,z) \
   ((t0) * ( W*T1*X*Y*Z*1) + \
    ( w) * (   T1*X*Y*Z*1) + \
    (t1) * (      X*Y*Z*1) + \
@@ -47,11 +47,10 @@ void svthresh(
     {
         const complex float alpha = 1.0, beta = 0.0;
         complex float *U     = malloc( M * K * sizeof(complex float) );
-        complex float *V     = malloc( K * N * sizeof(complex float) );
+        complex float *V     = malloc( N * K * sizeof(complex float) );
         float         *s     = malloc(     K * sizeof(        float) );
         float    *superb     = malloc(     K * sizeof(        float) );
         complex float *block = malloc( M * N * sizeof(complex float) );
-
 
         // for every block...
         #pragma omp for collapse(4)
@@ -77,9 +76,9 @@ void svthresh(
                 M, N, block, ldc, s, U, ldu, V, ldv, superb );
 
             // sV = thresh(s) * V
-            for (int k = 0; k < K; k++)
-                for (int n = 0; n < N; n++)
-                    V[k*N+n] *= max(s[k]-thresh, 0);
+            for (int n = 0; n < N; n++)
+                for (int k = 0; k < K; k++)
+                    V[n*K+k] *= max(s[k]-thresh, 0);
 
             // block = U * sV
             cblas_cgemm( CblasColMajor, CblasNoTrans, CblasNoTrans,
