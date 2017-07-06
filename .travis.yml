@@ -5,7 +5,6 @@ python:
 
 install:
   - sudo apt-get update
-  - sudo apt-get install gcc-4.9
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
@@ -14,7 +13,7 @@ install:
   - conda update -q conda
   - conda info -a
 
-  - conda install numpy scipy mkl pytest
+  - conda install gcc numpy scipy mkl pytest
   - python setup.py build
   - python setup.py install
 
