@@ -20,4 +20,6 @@ install:
   - python setup.py build
   - python setup.py install
 
+  - source /opt/intel/mkl/bin/mklvars.sh intel64
+
 script: pytest .
