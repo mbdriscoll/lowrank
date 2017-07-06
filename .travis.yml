@@ -23,6 +23,4 @@ install:
   - python setup.py build
   - python setup.py install
 
-  - export MKLROOT=$CONDA_PREFIX
-
 script: pytest
