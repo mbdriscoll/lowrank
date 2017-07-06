@@ -33,21 +33,24 @@
 
 void svthresh(
     float thresh, complex float *imgs,
-    int T0, int W, int T1, int X, int Y, int Z, // image dimensions
+    int T0, // outer time dimension
+    int W,  // image sets
+    int T1, // inner time dimension
+    int X, int Y, int Z, // image dimensions
     int b, int sx, int sy, int sz) // block size, shifts
 {
     int M = b*b*b,
         N = T0*T1;
     int K = min(M,N);
-    int ldc = M,
-        ldu = M,
-        ldv = K;
+    int ldc  = M,
+        ldu  = M,
+        ldvh = K;
 
     #pragma omp parallel
     {
         const complex float alpha = 1.0, beta = 0.0;
         complex float *U     = malloc( M * K * sizeof(complex float) );
-        complex float *V     = malloc( N * K * sizeof(complex float) );
+        complex float *VH    = malloc( N * K * sizeof(complex float) );
         float         *s     = malloc(     K * sizeof(        float) );
         float    *superb     = malloc(     K * sizeof(        float) );
         complex float *block = malloc( M * N * sizeof(complex float) );
@@ -71,18 +74,18 @@ void svthresh(
                   block[ IDX_BLK(t0,t1,bx,by,bz) ] = imgs[ IDX_IMG(t0,w,t1,x+bx,y+by,z+bz) ];
             }}}}}}}}
 
-            // U, s, V = svd(block)
+            // U, s, VH = svd(block)
             LAPACKE_cgesvd( LAPACK_COL_MAJOR, 'S', 'S',
-                M, N, block, ldc, s, U, ldu, V, ldv, superb );
+                M, N, block, ldc, s, U, ldu, VH, ldvh, superb );
 
-            // sV = thresh(s) * V
+            // sV = thresh(s) * VH
             for (int n = 0; n < N; n++)
                 for (int k = 0; k < K; k++)
-                    V[n*K+k] *= max(s[k]-thresh, 0);
+                    VH[n*K+k] *= max(s[k]-thresh, 0);
 
             // block = U * sV
             cblas_cgemm( CblasColMajor, CblasNoTrans, CblasNoTrans,
-                 M, N, K, &alpha, U, ldu, V, ldv, &beta, block, ldc );
+                 M, N, K, &alpha, U, ldu, VH, ldvh, &beta, block, ldc );
 
             // restore block
             for (int t0 = 0; t0 < T0; t0++) {
@@ -95,6 +98,6 @@ void svthresh(
 
         }}}}
 
-        free(block); free(U); free(V); free(s); free(superb);
+        free(block); free(U); free(VH); free(s); free(superb);
     }
 }
